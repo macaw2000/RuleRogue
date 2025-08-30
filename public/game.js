@@ -31,17 +31,17 @@ function deleteCookie(name) {
 
 // Movement optimization - ultra responsive with prediction
 let lastMoveTime = 0;
-const moveDelay = 25; // 25ms between moves for ultra-fast movement
+const moveDelay = 150; // 150ms between moves for smooth responsive movement without spam
 let pendingMoves = []; // Queue of moves sent to server but not yet confirmed
 let moveSequence = 0; // Sequence number for moves to handle out-of-order responses
 let serverPosition = { x: 0, y: 0 }; // Last confirmed server position
 let clientPosition = { x: 0, y: 0 }; // Current client position (with predictions)
 
-// Cleanup old pending moves to prevent memory leaks
+// Cleanup old pending moves to prevent memory leaks (less frequent to reduce CPU usage)
 setInterval(() => {
     const now = Date.now();
     pendingMoves = pendingMoves.filter(move => now - move.timestamp < 5000); // Keep moves for max 5 seconds
-}, 1000);
+}, 5000); // Clean up every 5 seconds instead of every second
 
 // DOM elements
 const loginScreen = document.getElementById('loginScreen');
