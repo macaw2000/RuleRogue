@@ -9,20 +9,26 @@ A real-time multiplayer roguelike game built with React and AWS serverless archi
 ## ✨ Features
 
 ### 🎯 Core Gameplay
+
+- **NetHack-Style Roguelike** - Authentic turn-based gameplay with fog of war
+- **Monster AI** - Monsters actively hunt and attack players (no more passive enemies!)
+- **Fog of War** - Line of sight system - only see what's within 8 tiles
 - **Real-time multiplayer** - See other players move instantly
 - **4 Character Classes** - Fighter, Wizard, Rogue, Cleric with unique abilities
 - **Procedurally Generated Dungeons** - Every level is unique
-- **Combat System** - Walk into monsters to attack, strategic positioning
+- **Turn-Based Combat** - Each move triggers monster turns for strategic gameplay
 - **Loot System** - Weapons, armor, potions, and gold with rarity levels
 - **Multi-level Exploration** - Use stairs to go deeper for better rewards
 
 ### 👥 Multiplayer Features
+
 - **Room Codes** - Create or join specific game rooms
 - **Player Identification** - Unique colors and symbols for each class
 - **Cooperative Gameplay** - Work together to explore dungeons
 - **Real-time Updates** - Instant synchronization across all players
 
 ### 🎨 User Experience
+
 - **NetHack-inspired ASCII Graphics** - Classic roguelike aesthetic
 - **Responsive Controls** - Smooth WASD/Arrow key movement
 - **Inventory Management** - Collect and equip items
@@ -32,6 +38,7 @@ A real-time multiplayer roguelike game built with React and AWS serverless archi
 ## 🎮 How to Play
 
 ### Controls
+
 - **WASD/Arrow Keys** - Move your character
 - **I** - Open inventory
 - **E** - Equipment menu (equip weapons/armor)
@@ -41,6 +48,7 @@ A real-time multiplayer roguelike game built with React and AWS serverless archi
 - **ESC** - Close menus
 
 ### Getting Started
+
 1. Visit the game URL
 2. Enter your character name
 3. Choose a class (Fighter, Wizard, Rogue, or Cleric)
@@ -48,20 +56,23 @@ A real-time multiplayer roguelike game built with React and AWS serverless archi
 5. Start exploring and fighting monsters!
 
 ### Character Classes
+
 - **🗡️ Fighter (@)** - High HP, strong melee combat
-- **🔮 Wizard (*)** - Magic abilities, lower HP but powerful
+- **🔮 Wizard (\*)** - Magic abilities, lower HP but powerful
 - **🗡️ Rogue (&)** - Agile and stealthy, balanced stats
 - **⚕️ Cleric (+)** - Healing abilities, well-rounded
 
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **React 18** - Modern UI framework
 - **Vite** - Fast build tool and dev server
 - **WebSocket API** - Real-time communication
 - **CSS3** - NetHack-inspired styling
 
 ### Backend (AWS Serverless)
+
 - **AWS Lambda** - Serverless compute for game logic
 - **API Gateway WebSocket** - Real-time multiplayer communication
 - **DynamoDB** - NoSQL database for game state
@@ -69,6 +80,7 @@ A real-time multiplayer roguelike game built with React and AWS serverless archi
 - **Serverless Framework** - Infrastructure as Code
 
 ### Architecture Benefits
+
 - **Scalable** - Automatically handles any number of players
 - **Cost-effective** - Pay only for what you use
 - **Global** - Low latency worldwide with AWS edge locations
@@ -77,11 +89,13 @@ A real-time multiplayer roguelike game built with React and AWS serverless archi
 ## 🚀 Development Setup
 
 ### Prerequisites
+
 - Node.js 18+
 - AWS CLI configured with appropriate permissions
 - Serverless Framework (`npm install -g serverless`)
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/macaw2000/RuleRogue.git
@@ -101,6 +115,7 @@ npm run deploy
 ```
 
 ### Local Development
+
 ```bash
 # Start local development server
 npm run dev
@@ -128,6 +143,7 @@ RuleRogue/
 ## 🔧 Deployment
 
 ### Fast Deployment (Recommended)
+
 ```bash
 # Frontend changes (2 seconds)
 aws s3 cp public/game.js s3://multiplayer-roguelike-website-prod/game.js
@@ -140,26 +156,31 @@ serverless deploy --stage prod
 ```
 
 ### Environment Configuration
+
 The game automatically configures for AWS deployment. Key endpoints:
+
 - **WebSocket:** `wss://m7usyjkjgd.execute-api.us-east-1.amazonaws.com/prod`
 - **Health Check:** `https://7nqypvcs16.execute-api.us-east-1.amazonaws.com/health`
 
 ## 🎯 Game Mechanics
 
 ### Combat System
+
 - Walk into monsters to attack automatically
 - Different monsters have varying HP and damage
 - Equipment affects your combat effectiveness
 - Gain experience and gold from victories
 
 ### Loot System
+
 - **Weapons (/)** - Increase damage output
-- **Armor ([)** - Reduce incoming damage  
+- **Armor ([)** - Reduce incoming damage
 - **Potions (!)** - Healing and buffs
 - **Rings (=)** - Special abilities
 - **Rarity Levels** - Common (green), Uncommon (blue), Rare (purple)
 
 ### Dungeon Exploration
+
 - Each level has unique layout and monsters
 - Deeper levels have stronger enemies and better loot
 - Use **<** and **>** stairs to navigate between levels

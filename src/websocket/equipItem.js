@@ -32,7 +32,7 @@ exports.handler = async (event) => {
     const item = inventory[itemIndex];
     
     // Validate item type
-    if (item.type !== itemType || (itemType !== 'weapon' && itemType !== 'armor')) {
+    if (item.type !== itemType || (itemType !== 'weapon' && itemType !== 'armor' && itemType !== 'lantern' && itemType !== 'lamp')) {
       await ws.sendToConnection(connectionId, {
         type: 'error',
         message: 'Cannot equip this item'
@@ -46,6 +46,8 @@ exports.handler = async (event) => {
       updates.equippedWeapon = item;
     } else if (itemType === 'armor') {
       updates.equippedArmor = item;
+    } else if (itemType === 'lantern' || itemType === 'lamp') {
+      updates.equippedLight = item;
     }
     
     await dynamodb.updatePlayer(connectionId, updates);

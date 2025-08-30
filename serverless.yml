@@ -5,7 +5,7 @@ frameworkVersion: '3'
 provider:
   name: aws
   runtime: nodejs20.x
-  region: us-east-1
+  region: us-west-2
   stage: ${opt:stage, 'prod'}
   environment:
     DYNAMODB_TABLE: ${self:service}-${self:provider.stage}
@@ -48,16 +48,18 @@ functions:
       - websocket: $disconnect
   
   joinGame:
-    handler: src/websocket/joinGame.handler
+    handler: src/websocket/joinGame-final.handler
     events:
       - websocket:
           route: joinGame
   
   playerMove:
-    handler: src/websocket/playerMove.handler
+    handler: src/websocket/playerMove-final.handler
     events:
       - websocket:
           route: playerMove
+  
+
   
   equipItem:
     handler: src/websocket/equipItem.handler
@@ -66,7 +68,7 @@ functions:
           route: equipItem
   
   pickupItem:
-    handler: src/websocket/pickupItem.handler
+    handler: src/websocket/pickupItem-final.handler
     events:
       - websocket:
           route: pickupItem

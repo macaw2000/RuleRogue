@@ -232,8 +232,8 @@ class DynamoDBService {
   // Generate a complete level with NetHack-style features
   generateLevel(levelNum) {
     const { dungeon, rooms, features } = this.generateDungeon(levelNum);
-    const monsters = this.generateMonsters(levelNum, rooms);
-    const items = this.generateItems(levelNum, rooms);
+    const monsters = this.generateMonsters(levelNum, rooms, dungeon);
+    const items = this.generateItems(levelNum, rooms, dungeon);
     
     return {
       levelNum,
@@ -246,7 +246,7 @@ class DynamoDBService {
     };
   }
 
-  // NetHack-style dungeon generation
+  // NetHack-style dungeon generation - completely rewritten
   generateDungeon(level = 1) {
     const width = 80;
     const height = 24;
@@ -260,19 +260,19 @@ class DynamoDBService {
       }
     }
     
-    // Create rooms
+    // Create rooms first
     const rooms = [];
     const numRooms = Math.floor(Math.random() * 4) + 6; // 6-9 rooms
     
     for (let attempts = 0; attempts < 50 && rooms.length < numRooms; attempts++) {
-      let roomWidth = Math.floor(Math.random() * 8) + 4;
-      let roomHeight = Math.floor(Math.random() * 6) + 3;
-      let roomX = Math.floor(Math.random() * (width - roomWidth - 4)) + 2;
-      let roomY = Math.floor(Math.random() * (height - roomHeight - 4)) + 2;
+      const roomWidth = Math.floor(Math.random() * 8) + 4;
+      const roomHeight = Math.floor(Math.random() * 6) + 3;
+      const roomX = Math.floor(Math.random() * (width - roomWidth - 4)) + 2;
+      const roomY = Math.floor(Math.random() * (height - roomHeight - 4)) + 2;
       
-      // Check for overlap
+      // Check for overlap (include buffer space)
       let overlap = false;
-      for (let room of rooms) {
+      for (const room of rooms) {
         if (roomX < room.x + room.width + 3 && roomX + roomWidth + 3 > room.x &&
             roomY < room.y + room.height + 3 && roomY + roomHeight + 3 > room.y) {
           overlap = true;
@@ -281,76 +281,48 @@ class DynamoDBService {
       }
       
       if (!overlap) {
-        // Create room walls and floor
-        for (let y = roomY - 1; y <= roomY + roomHeight; y++) {
-          for (let x = roomX - 1; x <= roomX + roomWidth; x++) {
-            if (y === roomY - 1 || y === roomY + roomHeight || 
-                x === roomX - 1 || x === roomX + roomWidth) {
-              dungeon[y][x] = '#'; // Wall
-            } else {
-              dungeon[y][x] = '.'; // Floor
-            }
-          }
-        }
-        
         rooms.push({ x: roomX, y: roomY, width: roomWidth, height: roomHeight });
       }
     }
     
-    // Helper function to create corridor with walls
-    const createCorridor = (x1, y1, x2, y2, isHorizontal) => {
-      if (isHorizontal) {
-        const startX = Math.min(x1, x2);
-        const endX = Math.max(x1, x2);
-        const y = y1;
-        
-        // Create corridor floor
-        for (let x = startX; x <= endX; x++) {
-          dungeon[y][x] = '.';
-        }
-        
-        // Add walls above and below corridor
-        for (let x = startX; x <= endX; x++) {
-          if (y > 0 && dungeon[y - 1][x] === ' ') dungeon[y - 1][x] = '#';
-          if (y < height - 1 && dungeon[y + 1][x] === ' ') dungeon[y + 1][x] = '#';
-        }
-      } else {
-        const startY = Math.min(y1, y2);
-        const endY = Math.max(y1, y2);
-        const x = x1;
-        
-        // Create corridor floor
-        for (let y = startY; y <= endY; y++) {
-          dungeon[y][x] = '.';
-        }
-        
-        // Add walls left and right of corridor
-        for (let y = startY; y <= endY; y++) {
-          if (x > 0 && dungeon[y][x - 1] === ' ') dungeon[y][x - 1] = '#';
-          if (x < width - 1 && dungeon[y][x + 1] === ' ') dungeon[y][x + 1] = '#';
+    // Draw rooms - floor first, then walls
+    for (const room of rooms) {
+      // Fill interior with floor
+      for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
+        for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
+          if (y >= 0 && y < height && x >= 0 && x < width) {
+            dungeon[y][x] = '.'; // Floor
+          }
         }
       }
-    };
-
-    // Connect rooms with corridors
+      
+      // Draw walls around the perimeter - AFTER corridors are created
+      // This will be done in a second pass to ensure walls are properly drawn
+    }
+    }
+    
+    // Connect rooms with proper corridors - NO DOORS
     for (let i = 1; i < rooms.length; i++) {
-      const prevRoom = rooms[i - 1];
-      const currRoom = rooms[i];
+      const room1 = rooms[i - 1];
+      const room2 = rooms[i];
       
-      const prevCenterX = Math.floor(prevRoom.x + prevRoom.width / 2);
-      const prevCenterY = Math.floor(prevRoom.y + prevRoom.height / 2);
-      const currCenterX = Math.floor(currRoom.x + currRoom.width / 2);
-      const currCenterY = Math.floor(currRoom.y + currRoom.height / 2);
-      
-      // Create L-shaped corridor with walls
-      if (Math.random() < 0.5) {
-        // Horizontal first, then vertical
-        createCorridor(prevCenterX, prevCenterY, currCenterX, prevCenterY, true);
-        createCorridor(currCenterX, prevCenterY, currCenterX, currCenterY, false);
-      } else {
-        // Vertical first, then horizontal
-        createCorridor(prevCenterX, prevCenterY, prevCenterX, currCenterY, false);
-        createCorridor(prevCenterX, currCenterY, currCenterX, currCenterY, true);
+      // Use L-shaped corridors (NetHack style)
+      this.createLShapedCorridor(dungeon, room1, room2, width, height);
+    }
+    
+    // Second pass: Draw walls around room perimeters (after corridors are created)
+    for (const room of rooms) {
+      for (let y = room.y; y < room.y + room.height; y++) {
+        for (let x = room.x; x < room.x + room.width; x++) {
+          if (y >= 0 && y < height && x >= 0 && x < width) {
+            // Only draw walls on the perimeter if the space is still empty
+            if ((y === room.y || y === room.y + room.height - 1) && dungeon[y][x] === ' ') {
+              dungeon[y][x] = '-'; // Top/bottom walls
+            } else if ((x === room.x || x === room.x + room.width - 1) && dungeon[y][x] === ' ') {
+              dungeon[y][x] = '|'; // Left/right walls
+            }
+          }
+        }
       }
     }
     
@@ -360,8 +332,8 @@ class DynamoDBService {
       // Upstairs (except on level 1)
       if (level > 1) {
         const upRoom = rooms[0];
-        const upX = upRoom.x + Math.floor(upRoom.width / 2);
-        const upY = upRoom.y + Math.floor(upRoom.height / 2);
+        const upX = Math.floor(upRoom.x + upRoom.width / 2);
+        const upY = Math.floor(upRoom.y + upRoom.height / 2);
         dungeon[upY][upX] = '<';
         features.push({ type: 'upstairs', x: upX, y: upY });
         console.log(`Generated upstairs on level ${level} at (${upX}, ${upY})`);
@@ -369,8 +341,8 @@ class DynamoDBService {
       
       // Downstairs
       const downRoom = rooms[rooms.length - 1];
-      const downX = downRoom.x + Math.floor(downRoom.width / 2);
-      const downY = downRoom.y + Math.floor(downRoom.height / 2);
+      const downX = Math.floor(downRoom.x + downRoom.width / 2);
+      const downY = Math.floor(downRoom.y + downRoom.height / 2);
       dungeon[downY][downX] = '>';
       features.push({ type: 'downstairs', x: downX, y: downY });
       console.log(`Generated downstairs on level ${level} at (${downX}, ${downY})`);
@@ -379,8 +351,48 @@ class DynamoDBService {
     return { dungeon, rooms, features, level };
   }
 
+  // Create L-shaped corridors between rooms (proper NetHack style)
+  createLShapedCorridor(dungeon, room1, room2, width, height) {
+    // Get room centers
+    const center1X = Math.floor(room1.x + room1.width / 2);
+    const center1Y = Math.floor(room1.y + room1.height / 2);
+    const center2X = Math.floor(room2.x + room2.width / 2);
+    const center2Y = Math.floor(room2.y + room2.height / 2);
+    
+    // Create L-shaped corridor: horizontal first, then vertical
+    // This creates a more natural NetHack-style connection
+    
+    // Horizontal segment
+    const startX = Math.min(center1X, center2X);
+    const endX = Math.max(center1X, center2X);
+    for (let x = startX; x <= endX; x++) {
+      if (x >= 0 && x < width && center1Y >= 0 && center1Y < height) {
+        if (dungeon[center1Y][x] === ' ') {
+          dungeon[center1Y][x] = '#'; // Corridor floor
+        } else if (dungeon[center1Y][x] === '-' || dungeon[center1Y][x] === '|') {
+          // Punch through walls - create simple floor opening (NO DOORS)
+          dungeon[center1Y][x] = '.'; // Floor opening
+        }
+      }
+    }
+    
+    // Vertical segment
+    const startY = Math.min(center1Y, center2Y);
+    const endY = Math.max(center1Y, center2Y);
+    for (let y = startY; y <= endY; y++) {
+      if (center2X >= 0 && center2X < width && y >= 0 && y < height) {
+        if (dungeon[y][center2X] === ' ') {
+          dungeon[y][center2X] = '#'; // Corridor floor
+        } else if (dungeon[y][center2X] === '-' || dungeon[y][center2X] === '|') {
+          // Punch through walls - create simple floor opening (NO DOORS)
+          dungeon[y][center2X] = '.'; // Floor opening
+        }
+      }
+    }
+  }
+
   // Generate monsters for a level
-  generateMonsters(level, rooms) {
+  generateMonsters(level, rooms, dungeon) {
     const monsters = [];
     const monsterTypes = [
       { symbol: 'r', name: 'rat', hp: 5, damage: 2, color: 'brown' },
@@ -396,34 +408,44 @@ class DynamoDBService {
     
     for (let i = 0; i < numMonsters && i < rooms.length * 2; i++) {
       const room = rooms[Math.floor(Math.random() * rooms.length)];
-      const x = room.x + Math.floor(Math.random() * room.width);
-      const y = room.y + Math.floor(Math.random() * room.height);
       
-      // Choose monster based on level
-      const availableMonsters = monsterTypes.filter(m => 
-        (m.name === 'rat' || m.name === 'kobold') ||
-        (level >= 2 && (m.name === 'goblin' || m.name === 'snake')) ||
-        (level >= 3 && m.name === 'orc') ||
-        (level >= 4 && m.name === 'zombie') ||
-        (level >= 5 && m.name === 'troll')
-      );
+      // Find a valid floor position within the room - MUST be on floor tiles only
+      let x, y;
+      let attempts = 0;
+      do {
+        x = room.x + 1 + Math.floor(Math.random() * (room.width - 2)); // Avoid walls
+        y = room.y + 1 + Math.floor(Math.random() * (room.height - 2)); // Avoid walls
+        attempts++;
+      } while (attempts < 50 && dungeon && dungeon[y] && dungeon[y][x] !== '.'); // Only place on floor tiles
       
-      const monsterType = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
-      
-      monsters.push({
-        id: `monster_${i}_${Date.now()}`,
-        ...monsterType,
-        x, y,
-        maxHp: monsterType.hp,
-        lastMove: Date.now()
-      });
+      // Only add monster if we found a valid floor position
+      if (!dungeon || !dungeon[y] || dungeon[y][x] === '.') {
+        // Choose monster based on level
+        const availableMonsters = monsterTypes.filter(m => 
+          (m.name === 'rat' || m.name === 'kobold') ||
+          (level >= 2 && (m.name === 'goblin' || m.name === 'snake')) ||
+          (level >= 3 && m.name === 'orc') ||
+          (level >= 4 && m.name === 'zombie') ||
+          (level >= 5 && m.name === 'troll')
+        );
+        
+        const monsterType = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
+        
+        monsters.push({
+          id: `monster_${i}_${Date.now()}`,
+          ...monsterType,
+          x, y,
+          maxHp: monsterType.hp,
+          lastMove: Date.now()
+        });
+      }
     }
     
     return monsters;
   }
 
   // Generate items for a level
-  generateItems(level, rooms) {
+  generateItems(level, rooms, dungeon) {
     const items = [];
     const itemTypes = [
       { symbol: '!', name: 'potion of healing', type: 'potion', effect: 'heal', value: 20, color: 'red' },
@@ -433,6 +455,9 @@ class DynamoDBService {
       { symbol: ')', name: 'sword', type: 'weapon', damage: 8, color: 'silver' },
       { symbol: '[', name: 'leather armor', type: 'armor', ac: 2, color: 'brown' },
       { symbol: '[', name: 'chain mail', type: 'armor', ac: 4, color: 'gray' },
+      { symbol: '(', name: 'lantern', type: 'lantern', lightRadius: 8, color: 'yellow' },
+      { symbol: '(', name: 'lamp', type: 'lamp', lightRadius: 6, color: 'orange' },
+      { symbol: '(', name: 'torch', type: 'torch', lightRadius: 4, color: 'red' },
       { symbol: '$', name: 'gold piece', type: 'gold', value: 1, color: 'yellow' }
     ];
     
@@ -440,16 +465,26 @@ class DynamoDBService {
     
     for (let i = 0; i < numItems && i < rooms.length * 3; i++) {
       const room = rooms[Math.floor(Math.random() * rooms.length)];
-      const x = room.x + Math.floor(Math.random() * room.width);
-      const y = room.y + Math.floor(Math.random() * room.height);
       
-      const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+      // Find a valid floor position within the room - MUST be on floor tiles only
+      let x, y;
+      let attempts = 0;
+      do {
+        x = room.x + 1 + Math.floor(Math.random() * (room.width - 2)); // Avoid walls
+        y = room.y + 1 + Math.floor(Math.random() * (room.height - 2)); // Avoid walls
+        attempts++;
+      } while (attempts < 50 && dungeon && dungeon[y] && dungeon[y][x] !== '.'); // Only place on floor tiles
       
-      items.push({
-        id: `item_${i}_${Date.now()}`,
-        ...itemType,
-        x, y
-      });
+      // Only add item if we found a valid floor position
+      if (!dungeon || !dungeon[y] || dungeon[y][x] === '.') {
+        const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+        
+        items.push({
+          id: `item_${i}_${Date.now()}`,
+          ...itemType,
+          x, y
+        });
+      }
     }
     
     return items;
@@ -459,7 +494,27 @@ class DynamoDBService {
     if (y < 0 || y >= dungeon.length || x < 0 || x >= dungeon[0].length) {
       return false;
     }
-    return dungeon[y][x] !== '#' && dungeon[y][x] !== ' ';
+    // NetHack style: walls are - and |, solid rock is space, walkable are . # + < >
+    return dungeon[y][x] !== '-' && dungeon[y][x] !== '|' && dungeon[y][x] !== ' ';
+  }
+
+  // Get all active games for monster AI
+  async getAllActiveGames() {
+    try {
+      const params = {
+        TableName: this.tableName,
+        FilterExpression: 'attribute_exists(players) AND size(players) > :zero',
+        ExpressionAttributeValues: {
+          ':zero': 0
+        }
+      };
+      
+      const result = await this.dynamodb.scan(params).promise();
+      return result.Items || [];
+    } catch (error) {
+      console.error('Error getting active games:', error);
+      return [];
+    }
   }
 
   // Get starting position for new player
@@ -598,6 +653,11 @@ class DynamoDBService {
       case 'down': return { x, y: y + 1 };
       case 'left': return { x: x - 1, y };
       case 'right': return { x: x + 1, y };
+      // NetHack diagonal movement
+      case 'up-left': return { x: x - 1, y: y - 1 };
+      case 'up-right': return { x: x + 1, y: y - 1 };
+      case 'down-left': return { x: x - 1, y: y + 1 };
+      case 'down-right': return { x: x + 1, y: y + 1 };
       default: return { x, y };
     }
   }

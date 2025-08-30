@@ -71,16 +71,16 @@
 
 ### Working URLs:
 
-- **Game URL:** http://multiplayer-roguelike-website-prod.s3-website-us-east-1.amazonaws.com
-- **WebSocket:** wss://nv9uxm5a4h.execute-api.us-east-1.amazonaws.com/prod
-- **Health Check:** https://tlkc70yaji.execute-api.us-east-1.amazonaws.com/health
+- **Game URL:** http://multiplayer-roguelike-website-prod-west.s3-website-us-west-2.amazonaws.com
+- **WebSocket:** wss://pzaxtgam5c.execute-api.us-west-2.amazonaws.com/prod
+- **Health Check:** https://t04sdna0t5.execute-api.us-west-2.amazonaws.com/health
 
 ### Fast Deployment Commands:
 
 ```bash
 # Frontend changes (2 seconds):
-aws s3 cp public/game.js s3://multiplayer-roguelike-website-prod/game.js
-aws s3 cp public/index.html s3://multiplayer-roguelike-website-prod/index.html
+aws s3 cp public/game.js s3://multiplayer-roguelike-website-prod-west/game.js --region us-west-2
+aws s3 cp public/index.html s3://multiplayer-roguelike-website-prod-west/index.html --region us-west-2
 
 # Backend changes (5-10 seconds):
 serverless deploy function --function pickupItem --stage prod
@@ -94,7 +94,7 @@ serverless deploy --stage prod  # Only use for infrastructure changes
 
 1. Make changes
 2. Deploy using fast commands above
-3. Test on: http://multiplayer-roguelike-website-prod.s3-website-us-east-1.amazonaws.com
+3. Test on: http://multiplayer-roguelike-website-prod-west.s3-website-us-west-2.amazonaws.com
 4. NEVER suggest local testing
 
 ## Enforcement Rules

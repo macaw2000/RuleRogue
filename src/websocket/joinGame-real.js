@@ -5,35 +5,24 @@ exports.handler = async (event) => {
   const connectionId = event.requestContext.connectionId;
   const ws = new WebSocketService(event);
   
-  console.log('JoinGame handler called for:', connectionId);
-  console.log('Request body:', event.body);
+  console.log('Real joinGame handler called for:', connectionId);
   
   try {
     const body = JSON.parse(event.body);
-    const { 
-      name, 
-      roomCode,
-      createRoom = false,
-      className = 'Fighter',
-      hp = 100,
-      maxHp = 100,
-      symbol = '@'
-    } = body;
-    
+    const { name, roomCode = 'DEFAULT', createRoom = false } = body;
     const characterClass = body.class || 'fighter';
     
-    let game;
     let gameId;
+    let game;
     
     if (createRoom) {
       // Create new game with generated room code
       const newRoomCode = dynamodb.generateRoomCode();
       gameId = `game_${newRoomCode}_${Date.now()}`;
       game = await dynamodb.createGame(gameId, newRoomCode);
-      
       console.log(`Created new game with room code: ${newRoomCode}`);
-    } else if (roomCode) {
-      // Join existing game by room code, or create new one if it doesn't exist
+    } else if (roomCode && roomCode !== 'DEFAULT') {
+      // Try to find existing game by room code
       game = await dynamodb.findGameByRoomCode(roomCode.toUpperCase());
       if (!game) {
         // Create new game with the specified room code
@@ -45,19 +34,24 @@ exports.handler = async (event) => {
         console.log(`Joined existing game with room code: ${roomCode.toUpperCase()}`);
       }
     } else {
-      // Default room for testing - allow empty room code
-      gameId = 'default';
+      // Default game
+      gameId = 'default_game';
       game = await dynamodb.getGame(gameId);
       if (!game) {
         game = await dynamodb.createGame(gameId, 'DEFAULT');
+        console.log('Created default game');
       }
     }
     
-    // Update connection with game ID
+    // Save connection
     await dynamodb.saveConnection(connectionId, gameId);
     
     // Get starting position on level 1
     const level1 = game.levels[1] || game.levels["1"];
+    if (!level1) {
+      throw new Error('No level 1 data found in game');
+    }
+    
     const startingPos = dynamodb.getStartingPosition(level1);
     
     // Check for existing players to avoid overlap
@@ -82,26 +76,28 @@ exports.handler = async (event) => {
       }
     }
     
-    // Create player with NetHack-style attributes
+    // Create player - avoid using 'class' as property name
     const player = {
       id: connectionId,
       name: name || `Player${Date.now()}`,
-      class: characterClass,
-      className: className,
+      characterClass: characterClass, // Use characterClass instead of class
+      className: characterClass === 'fighter' ? 'Fighter' : 
+                 characterClass === 'wizard' ? 'Wizard' :
+                 characterClass === 'rogue' ? 'Rogue' : 'Cleric',
       x: finalPos.x,
       y: finalPos.y,
-      hp: hp,
-      maxHp: maxHp,
-      level: 1, // Start on dungeon level 1
+      hp: characterClass === 'fighter' ? 120 : characterClass === 'wizard' ? 80 : 100,
+      maxHp: characterClass === 'fighter' ? 120 : characterClass === 'wizard' ? 80 : 100,
+      level: 1,
       inventory: [],
       gold: 0,
       experience: 0,
       armor: 0,
-      symbol: symbol,
+      symbol: '@',
       gameId: gameId
     };
     
-    // Save player to database
+    // Save player
     await dynamodb.savePlayer(connectionId, gameId, player);
     
     // Update game activity
@@ -109,23 +105,20 @@ exports.handler = async (event) => {
     
     // Get all players in the game
     const players = await dynamodb.getPlayersByGame(gameId);
-    
-    // Get all connections for this game
     const gameConnections = players.map(p => p.playerId);
     
     // Send game state to all players
-    const currentLevel = game.levels[1] || game.levels["1"];
     const gameState = {
       roomCode: game.roomCode,
       currentLevel: 1,
-      dungeon: currentLevel.dungeon,
-      monsters: currentLevel.monsters,
-      items: currentLevel.items,
-      features: currentLevel.features,
+      dungeon: level1.dungeon,
+      monsters: level1.monsters,
+      items: level1.items,
+      features: level1.features,
       players: players.map(p => ({
         id: p.playerId,
         name: p.name,
-        class: p.class || 'fighter',
+        class: p.characterClass || p.class || 'fighter',
         className: p.className || 'Fighter',
         x: p.x,
         y: p.y,
@@ -140,27 +133,32 @@ exports.handler = async (event) => {
       }))
     };
     
-    await ws.broadcastToGame(gameConnections, {
-      type: 'gameState',
-      data: gameState
-    });
+    // Broadcast to all players
+    for (const connId of gameConnections) {
+      try {
+        await ws.sendToConnection(connId, {
+          type: 'gameState',
+          data: gameState
+        });
+      } catch (error) {
+        console.error(`Failed to send to ${connId}:`, error);
+      }
+    }
     
-    // Send connection ID to the new player so they can identify themselves
+    // Send connection ID and welcome messages
     await ws.sendToConnection(connectionId, {
       type: 'connectionId',
       data: { connectionId: connectionId }
     });
     
-    // Send welcome message to new player
     await ws.sendToConnection(connectionId, {
       type: 'message',
       data: {
-        text: `Welcome to the dungeon, ${name} the ${className}!`,
+        text: `Welcome to the dungeon, ${name} the ${player.className}!`,
         color: 'yellow'
       }
     });
     
-    // Send gameplay instructions
     await ws.sendToConnection(connectionId, {
       type: 'message',
       data: {
@@ -179,23 +177,23 @@ exports.handler = async (event) => {
       });
     }
     
-    console.log(`${name} the ${className} joined room "${game.roomCode}" (${gameId})`);
+    console.log(`${name} the ${player.className} joined room "${game.roomCode}" (${gameId})`);
     
     return {
       statusCode: 200,
-      body: 'Joined game'
+      body: 'Joined real game'
     };
   } catch (error) {
-    console.error('Join game error:', error);
+    console.error('Real join game error:', error);
     
     await ws.sendToConnection(connectionId, {
       type: 'error',
-      message: 'Failed to join game'
+      message: `Failed to join real game: ${error.message}`
     });
     
     return {
       statusCode: 500,
-      body: 'Failed to join game'
+      body: 'Failed to join real game'
     };
   }
 };

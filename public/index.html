@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RuleRogue</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
     <style>
         body {
             margin: 0;
@@ -150,13 +151,15 @@
             width: 200px;
         }
         
-        /* NetHack-style colors - monsters are darker/duller */
-        .monster { color: #cc6666; }
-        .item { color: #66cc66; }
-        .stairs { color: #cccc66; }
-        .wall { color: #888888; }
-        .floor { color: #444444; }
-        .empty { color: #000000; }
+        /* Proper NetHack colors */
+        .monster { color: #ff4444; }
+        .item { color: #44ff44; }
+        .stairs { color: #ffff44; }
+        .wall { color: #ffffff; font-weight: bold; }      /* - and | walls: bright white */
+        .corridor { color: #888888; }                     /* # corridor floors: gray */
+        .door { color: #aa6600; font-weight: bold; }      /* + doors: brown (level 3+) */
+        .floor { color: #666666; }                        /* . room floors: dark gray */
+        .rock { color: #000000; }                         /* space: black (solid rock) */
         .unknown { color: #ff00ff; }
         
         /* Help modal */
@@ -206,6 +209,36 @@
             background-color: #000;
             border: 1px solid #333;
             padding: 5px;
+        }
+        
+        /* NetHack-style fog of war - MUCH BRIGHTER */
+        .unexplored {
+            color: #000;
+            background-color: #000;
+        }
+        
+        .explored {
+            opacity: 1.0; /* Full brightness for explored areas */
+            filter: brightness(1.0); /* Much brighter for explored areas */
+        }
+        
+        .visible {
+            opacity: 1.0; /* Full brightness for visible areas */
+            filter: brightness(1.3); /* Much brighter for visible areas */
+        }
+        
+        .visible.lit {
+            opacity: 1.0; /* Full brightness with lantern/lamp */
+            filter: brightness(1.5); /* Extra bright with light source */
+        }
+        
+        /* Ensure monsters and items are only visible when in line of sight */
+        .monster.explored {
+            display: none; /* Don't show monsters in explored but not visible areas */
+        }
+        
+        .item.explored {
+            display: none; /* Don't show items in explored but not visible areas */
         }
     </style>
 </head>
@@ -386,6 +419,6 @@
         </div>
     </div>
 
-    <script src="game.js"></script>
+    <script src="game.js?v=6"></script>
 </body>
 </html>

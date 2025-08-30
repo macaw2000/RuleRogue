@@ -68,7 +68,7 @@ exports.handler = async (event) => {
         
         if (item.type === 'gold') {
           // Add gold to player's purse instead of inventory
-          goldCollected += item.amount;
+          goldCollected += item.amount || item.value || 1;
         } else {
           // Add regular items to inventory
           inventory.push(item);
