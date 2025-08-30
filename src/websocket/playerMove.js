@@ -96,7 +96,7 @@ exports.handler = async (event) => {
   
   try {
     const body = JSON.parse(event.body);
-    const { direction, useStairs, sequence, tick, timestamp } = body;
+    const { direction, useStairs, sequence } = body;
     
     // Log for server debugging only
     console.log(`PlayerMove handler called - connectionId: ${connectionId}, direction: ${direction}, useStairs: ${useStairs}`);
@@ -412,9 +412,7 @@ exports.handler = async (event) => {
           y: actualPosition.y,
           hp: playerUpdates.hp !== undefined ? playerUpdates.hp : player.hp,
           experience: playerUpdates.experience !== undefined ? playerUpdates.experience : (player.experience || 0),
-          sequence: sequence, // Include sequence number for client reconciliation
-          tick: tick, // Include client tick for prediction reconciliation
-          timestamp: timestamp // Include timestamp for latency compensation
+          sequence: sequence // Include sequence number for client reconciliation
         }
       };
       

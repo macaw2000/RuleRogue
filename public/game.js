@@ -31,7 +31,7 @@ function deleteCookie(name) {
 
 // Movement optimization - ultra responsive with prediction
 let lastMoveTime = 0;
-const moveDelay = 100; // 100ms between moves for responsive movement
+const moveDelay = 25; // 25ms between moves for ultra-fast movement
 let pendingMoves = []; // Queue of moves sent to server but not yet confirmed
 let moveSequence = 0; // Sequence number for moves to handle out-of-order responses
 let serverPosition = { x: 0, y: 0 }; // Last confirmed server position
