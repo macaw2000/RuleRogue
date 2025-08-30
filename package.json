@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && aws s3 sync dist/ s3://multiplayer-roguelike-website-prod --delete --cache-control \"no-cache, no-store, must-revalidate\"",
+    "deploy": "aws s3 sync public/ s3://multiplayer-roguelike-website-prod --delete --cache-control \"no-cache, no-store, must-revalidate\"",
     "offline": "serverless offline"
   },
   "dependencies": {
