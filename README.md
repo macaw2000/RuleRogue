@@ -1,187 +1,186 @@
-# RuleRogue
+# 🎮 RuleRogue - Multiplayer Roguelike Game
 
-A web-based multiplayer roguelike game inspired by NetHack, built with Node.js and WebSockets. Designed for AWS deployment to enable seamless multiplayer gaming with friends and family.
+A real-time multiplayer roguelike game built with React and AWS serverless architecture. Explore procedurally generated dungeons, fight monsters, collect loot, and play with friends!
 
-## Features
+## 🚀 Live Demo
 
-- **🎮 Real-time multiplayer gameplay** - Classic roguelike multiplayer experience
-- **� ASCII-style graphics** - Traditional roguelike aesthetic with colored characters
-- **⌨️ Responsive controls** - WASD/Arrow key movement with anti-spam protection
-- **👥 Player stats and positioning** - Track multiple players in real-time
-- **🏰 Procedural dungeon generation** - Multi-level dungeons with stairs
-- **⚔️ Combat system** - Fight monsters and collect loot
-- **🎒 Inventory system** - Collect weapons, armor, potions, and gold
-- **🎭 Character classes** - Choose from Fighter, Wizard, Rogue, or Cleric
-- **☁️ AWS-optimized deployment** - Serverless architecture for global scale
-- **🔌 WebSocket support** - Reliable real-time connections
-- **📊 Health monitoring and auto-scaling** - Enterprise-grade reliability
+**Play Now:** http://multiplayer-roguelike-website-prod.s3-website-us-east-1.amazonaws.com
 
-## Serverless AWS Deployment (Ultra Low Cost!)
+## ✨ Features
 
-This game uses a **100% serverless architecture** for maximum cost efficiency:
+### 🎯 Core Gameplay
+- **Real-time multiplayer** - See other players move instantly
+- **4 Character Classes** - Fighter, Wizard, Rogue, Cleric with unique abilities
+- **Procedurally Generated Dungeons** - Every level is unique
+- **Combat System** - Walk into monsters to attack, strategic positioning
+- **Loot System** - Weapons, armor, potions, and gold with rarity levels
+- **Multi-level Exploration** - Use stairs to go deeper for better rewards
 
-- **AWS Lambda** - Pay only when players are active
-- **API Gateway WebSockets** - Real-time multiplayer
-- **DynamoDB** - NoSQL database with pay-per-request
-- **S3** - Static website hosting
-- **CloudWatch** - Monitoring and logs
+### 👥 Multiplayer Features
+- **Room Codes** - Create or join specific game rooms
+- **Player Identification** - Unique colors and symbols for each class
+- **Cooperative Gameplay** - Work together to explore dungeons
+- **Real-time Updates** - Instant synchronization across all players
+
+### 🎨 User Experience
+- **NetHack-inspired ASCII Graphics** - Classic roguelike aesthetic
+- **Responsive Controls** - Smooth WASD/Arrow key movement
+- **Inventory Management** - Collect and equip items
+- **Help System** - In-game guide with full controls
+- **Auto-save Preferences** - Remember your character settings
+
+## 🎮 How to Play
+
+### Controls
+- **WASD/Arrow Keys** - Move your character
+- **I** - Open inventory
+- **E** - Equipment menu (equip weapons/armor)
+- **,** (comma) - Pick up items at your location
+- **>** - Go down stairs | **<** - Go up stairs
+- **H** - Show help menu
+- **ESC** - Close menus
+
+### Getting Started
+1. Visit the game URL
+2. Enter your character name
+3. Choose a class (Fighter, Wizard, Rogue, or Cleric)
+4. Create a new room or enter a room code to join friends
+5. Start exploring and fighting monsters!
+
+### Character Classes
+- **🗡️ Fighter (@)** - High HP, strong melee combat
+- **🔮 Wizard (*)** - Magic abilities, lower HP but powerful
+- **🗡️ Rogue (&)** - Agile and stealthy, balanced stats
+- **⚕️ Cleric (+)** - Healing abilities, well-rounded
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 18** - Modern UI framework
+- **Vite** - Fast build tool and dev server
+- **WebSocket API** - Real-time communication
+- **CSS3** - NetHack-inspired styling
+
+### Backend (AWS Serverless)
+- **AWS Lambda** - Serverless compute for game logic
+- **API Gateway WebSocket** - Real-time multiplayer communication
+- **DynamoDB** - NoSQL database for game state
+- **S3 Static Hosting** - Frontend deployment
+- **Serverless Framework** - Infrastructure as Code
+
+### Architecture Benefits
+- **Scalable** - Automatically handles any number of players
+- **Cost-effective** - Pay only for what you use
+- **Global** - Low latency worldwide with AWS edge locations
+- **Reliable** - AWS managed services with 99.9% uptime
+
+## 🚀 Development Setup
 
 ### Prerequisites
+- Node.js 18+
+- AWS CLI configured with appropriate permissions
+- Serverless Framework (`npm install -g serverless`)
 
-- AWS CLI installed and configured
-- Node.js 18+ installed
-- AWS account with appropriate permissions
-
-### Quick Deploy
-
-1. Clone this repository
-2. Run the deployment script:
-
-   ```bash
-   # On Windows
-   deploy-serverless.bat
-   ```
-
-3. Your game will be live at the S3 website URL!
-
-### Manual Serverless Deployment
-
-1. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. Deploy infrastructure:
-
-   ```bash
-   npx serverless deploy
-   ```
-
-3. Deploy website:
-   ```bash
-   npm run deploy:website
-   ```
-
-## Local Development (Testing Only)
-
-For local testing with serverless-offline:
-
+### Installation
 ```bash
+# Clone the repository
+git clone https://github.com/macaw2000/RuleRogue.git
+cd RuleRogue
+
+# Install dependencies
 npm install
-npm run offline
+
+# Deploy backend to AWS
+serverless deploy --stage prod
+
+# Build frontend
+npm run build
+
+# Deploy frontend to S3
+npm run deploy
 ```
 
-## Controls
+### Local Development
+```bash
+# Start local development server
+npm run dev
 
-- **WASD** or **Arrow Keys**: Move your character one tile at a time
-- **Movement**: Classic roguelike movement with 100ms cooldown to prevent spam
-- **Combat**: Walk into monsters to attack them
-- **Items**: Walk over items to pick them up automatically
-- **Stairs**: Stand on stairs (`<` or `>`) and press any direction to use them
-- **H**: Help (in-game guide with full controls)
-- **I**: Inventory (view collected items)
+# Run backend locally (optional)
+serverless offline
+```
 
-### 🎮 Gameplay Features
+## 📁 Project Structure
 
-- **Server Authoritative**: All game logic runs on the server for fair play
-- **Real-time Updates**: See other players move and act instantly
-- **Anti-spam Protection**: Movement cooldown prevents accidental rapid movement
-- **Reliable Networking**: No rubberbanding or desync issues
-- **Classic Feel**: Traditional roguelike movement and mechanics
+```
+RuleRogue/
+├── src/                    # Backend Lambda functions
+│   ├── websocket/         # WebSocket handlers
+│   ├── http/              # HTTP API handlers
+│   └── scheduled/         # Cleanup functions
+├── public/                # Frontend static files
+│   ├── index.html        # Main HTML file
+│   └── game.js           # Game client code
+├── serverless.yml        # AWS infrastructure config
+├── package.json          # Dependencies and scripts
+└── README.md            # This file
+```
 
-### 🎮 Game Features
+## 🔧 Deployment
 
-- **Rich Loot System**: Monsters drop weapons, armor, potions, and gold
-- **Character Classes**: Fighter, Wizard, Rogue, Cleric with unique colors and symbols
-- **Visual Distinction**: Players glow and stand out from monsters
-- **Comprehensive Help**: Press 'H' in-game for full controls and guide
-- **Smart Inventory**: Color-coded items by rarity with stat display
-- **Equipment Stats**: Weapons show damage, armor shows defense
-- **Gold Economy**: Collect gold from defeated monsters
+### Fast Deployment (Recommended)
+```bash
+# Frontend changes (2 seconds)
+aws s3 cp public/game.js s3://multiplayer-roguelike-website-prod/game.js
 
-## Planned Features
+# Backend function updates (5-10 seconds)
+serverless deploy function --function playerMove --stage prod
 
-- [x] Combat system ✅
-- [x] Inventory and items ✅
-- [x] Multiple dungeon levels ✅
-- [x] Character classes ✅
-- [ ] Equipment system (equip/unequip items)
-- [ ] Spells and abilities
-- [ ] Advanced monster AI
-- [ ] More procedural dungeon generation
-- [ ] Chat system
-- [ ] Save/load game state
-- [ ] Experience and leveling system
+# Full deployment (60+ seconds, only for infrastructure changes)
+serverless deploy --stage prod
+```
 
-## Serverless Cost Estimation (Pay Only for Usage!)
+### Environment Configuration
+The game automatically configures for AWS deployment. Key endpoints:
+- **WebSocket:** `wss://m7usyjkjgd.execute-api.us-east-1.amazonaws.com/prod`
+- **Health Check:** `https://7nqypvcs16.execute-api.us-east-1.amazonaws.com/health`
 
-**AWS Lambda:**
+## 🎯 Game Mechanics
 
-- 1M requests/month: FREE (AWS Free Tier)
-- Additional requests: $0.20 per 1M requests
-- Compute time: $0.0000166667 per GB-second
+### Combat System
+- Walk into monsters to attack automatically
+- Different monsters have varying HP and damage
+- Equipment affects your combat effectiveness
+- Gain experience and gold from victories
 
-**API Gateway WebSockets:**
+### Loot System
+- **Weapons (/)** - Increase damage output
+- **Armor ([)** - Reduce incoming damage  
+- **Potions (!)** - Healing and buffs
+- **Rings (=)** - Special abilities
+- **Rarity Levels** - Common (green), Uncommon (blue), Rare (purple)
 
-- 1M messages/month: $1.00
-- Connection minutes: $0.25 per million
+### Dungeon Exploration
+- Each level has unique layout and monsters
+- Deeper levels have stronger enemies and better loot
+- Use **<** and **>** stairs to navigate between levels
+- Procedural generation ensures replayability
 
-**DynamoDB:**
+## 🤝 Contributing
 
-- 25GB storage: FREE (AWS Free Tier)
-- Pay-per-request: $1.25 per million requests
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-**S3 Website Hosting:**
+## 📄 License
 
-- 5GB storage: FREE (AWS Free Tier)
-- Data transfer: $0.09 per GB
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-**Estimated Monthly Cost:**
+## 🎮 Credits
 
-- **Light usage (few players, occasional games): $0-2/month**
-- **Moderate usage (regular gaming sessions): $2-8/month**
-- **Heavy usage (many players, daily games): $8-15/month**
+Inspired by classic roguelike games like NetHack, Rogue, and modern multiplayer implementations. Built with modern web technologies for accessibility and real-time multiplayer experience.
 
-**🎉 Up to 95% cheaper than traditional server hosting!**
+---
 
-## Technical Details
-
-- **Backend**: AWS Lambda + API Gateway WebSockets + DynamoDB
-- **Frontend**: HTML5 + Vanilla JavaScript
-- **Real-time Communication**: WebSockets via API Gateway
-- **Game State**: Stored in DynamoDB with TTL auto-cleanup
-- **Architecture**: 100% serverless, pay-per-use
-
-## Playing with Friends
-
-Once deployed to AWS:
-
-1. Share your AWS application URL with your brothers
-2. Everyone enters their name and joins the same game instance
-3. Play together in real-time from anywhere in the world!
-
-## Serverless Security Features
-
-- **HTTPS by default** via API Gateway
-- **IAM roles and policies** for least-privilege access
-- **DynamoDB encryption** at rest and in transit
-- **CloudWatch monitoring** and alerting
-- **Automatic scaling** based on demand
-- **TTL cleanup** prevents data accumulation
-
-## Monitoring
-
-- Health endpoint: `GET /health`
-- CloudWatch logs for all Lambda functions
-- DynamoDB metrics and alarms
-- Real-time connection and game monitoring
-- Automatic cleanup of inactive games every 5 minutes
-
-## Serverless Benefits
-
-- **Zero server management** - AWS handles everything
-- **Automatic scaling** - from 0 to thousands of players
-- **High availability** - Multi-AZ by default
-- **Pay per use** - No idle server costs
-- **Global edge locations** - Low latency worldwide
+**Ready to explore the dungeons? [Start Playing Now!](http://multiplayer-roguelike-website-prod.s3-website-us-east-1.amazonaws.com)**
