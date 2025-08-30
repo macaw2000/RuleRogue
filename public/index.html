@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuleRogue</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+        }
+        
+        #gameContainer {
+            display: flex;
+            gap: 20px;
+        }
+        
+        #gameArea {
+            border: 2px solid #0f0;
+            padding: 10px;
+            background-color: #001100;
+        }
+        
+        #sidebar {
+            min-width: 200px;
+            border: 2px solid #0f0;
+            padding: 10px;
+            background-color: #001100;
+        }
+        
+        #dungeon {
+            line-height: 1;
+            white-space: pre;
+            font-size: 14px;
+        }
+        
+        #controls {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #0f0;
+        }
+        
+        input, button {
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px;
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background-color: #002200;
+        }
+        
+        #playerList {
+            margin-bottom: 10px;
+        }
+        
+        .player-info {
+            margin: 5px 0;
+            padding: 5px;
+            border: 1px solid #333;
+        }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #0f0;
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #888;
+            font-size: 12px;
+        }
+        
+        select {
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px;
+            font-family: inherit;
+            width: 100%;
+        }
+        
+        .character-preview {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #0f0;
+            background-color: #001100;
+        }
+        
+        /* Player classes - bright and distinctive with unique variations */
+        .class-fighter { 
+            color: #ff0000; 
+            font-weight: bold; 
+            text-shadow: 0 0 3px #ff0000;
+        }
+        .class-wizard { 
+            color: #0080ff; 
+            font-weight: bold; 
+            text-shadow: 0 0 3px #0080ff;
+        }
+        .class-rogue { 
+            color: #00ff00; 
+            font-weight: bold; 
+            text-shadow: 0 0 3px #00ff00;
+        }
+        .class-cleric { 
+            color: #ffff00; 
+            font-weight: bold; 
+            text-shadow: 0 0 3px #ffff00;
+        }
+        
+        /* Individual player color variations */
+        .player-0 { filter: hue-rotate(0deg) brightness(1.0); }
+        .player-1 { filter: hue-rotate(30deg) brightness(1.1); }
+        .player-2 { filter: hue-rotate(60deg) brightness(1.2); }
+        .player-3 { filter: hue-rotate(90deg) brightness(1.0); }
+        .player-4 { filter: hue-rotate(120deg) brightness(1.1); }
+        .player-5 { filter: hue-rotate(150deg) brightness(1.2); }
+        .player-6 { filter: hue-rotate(180deg) brightness(1.0); }
+        .player-7 { filter: hue-rotate(210deg) brightness(1.1); }
+        
+        /* Tooltip styles */
+        .player-tooltip {
+            position: absolute;
+            background-color: #001100;
+            border: 1px solid #0f0;
+            padding: 5px 8px;
+            font-size: 12px;
+            color: #0f0;
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        #roomCode {
+            width: 200px;
+        }
+        
+        /* NetHack-style colors - monsters are darker/duller */
+        .monster { color: #cc6666; }
+        .item { color: #66cc66; }
+        .stairs { color: #cccc66; }
+        .wall { color: #888888; }
+        .floor { color: #444444; }
+        .empty { color: #000000; }
+        .unknown { color: #ff00ff; }
+        
+        /* Help modal */
+        .help-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            z-index: 1000;
+        }
+        
+        .help-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #001100;
+            border: 2px solid #0f0;
+            padding: 20px;
+            max-width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        
+        .help-close {
+            float: right;
+            font-size: 20px;
+            cursor: pointer;
+            color: #ff0000;
+        }
+        
+        .inventory-item {
+            margin: 2px 0;
+            padding: 2px;
+            border-left: 2px solid #0f0;
+            padding-left: 5px;
+        }
+        
+        #gameMessages {
+            font-size: 12px;
+        }
+        
+        #dungeon {
+            background-color: #000;
+            border: 1px solid #333;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>RuleRogue</h1>
+    
+    <div id="loginScreen">
+        <div id="characterCreation">
+            <h2>Create Your Character</h2>
+            
+            <div class="form-group">
+                <label for="playerName">Character Name:</label>
+                <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+            </div>
+            
+            <div class="form-group">
+                <label for="characterClass">Choose Class:</label>
+                <select id="characterClass">
+                    <option value="fighter">Fighter - High HP, Strong melee</option>
+                    <option value="wizard">Wizard - Magic spells, Low HP</option>
+                    <option value="rogue">Rogue - Stealth, High agility</option>
+                    <option value="cleric">Cleric - Healing, Balanced stats</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="createRoom"> Create New Room
+                </label>
+                <small>Check this to create a new game room with a generated code</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="roomCode">Room Code (optional):</label>
+                <input type="text" id="roomCode" placeholder="Enter any room code (e.g., BROS01)" maxlength="6" style="text-transform: uppercase;">
+                <small>Enter any room code - if it exists you'll join, if not you'll create it! Or leave blank for default room.</small>
+            </div>
+            
+            <div class="character-preview" id="characterPreview">
+                <h3>Character Preview:</h3>
+                <div id="previewStats"></div>
+            </div>
+            
+            <button onclick="createCharacter()">Create Character & Join Game</button>
+            <button onclick="clearSavedData()" style="margin-left: 10px; background-color: #440000;">Clear Saved Data</button>
+        </div>
+    </div>
+    
+    <div id="gameContainer" style="display: none;" tabindex="0">
+        <div id="gameArea">
+            <div id="dungeon"></div>
+            <div id="controls">
+                <p><strong>Press 'H' for help and full controls!</strong></p>
+                <p>WASD/Arrows: Move | I: Inventory | E: Equipment | , (comma): Pick up | > < : Stairs | H: Help</p>
+                <p>Walk into monsters to attack | Stand on items and press ',' to pick up</p>
+            </div>
+            
+            <div id="gameMessages" style="height: 100px; overflow-y: auto; border: 1px solid #0f0; padding: 5px; margin-top: 10px; background-color: #000;">
+            </div>
+        </div>
+        
+        <div id="sidebar">
+            <h3>Players Online</h3>
+            <div id="playerList"></div>
+            
+            <h3>Your Stats</h3>
+            <div id="playerStats">
+                <div>Class: <span id="playerClass">Fighter</span></div>
+                <div>HP: <span id="hp">100</span>/<span id="maxHp">100</span></div>
+                <div>Dungeon Level: <span id="dungeonLevel">1</span></div>
+                <div>Experience: <span id="experience">0</span></div>
+                <div>Gold: <span id="gold">0</span></div>
+                <div>Position: (<span id="posX">1</span>, <span id="posY">1</span>)</div>
+            </div>
+            
+            <div id="inventoryPanel" style="display: none;">
+                <h3>Inventory</h3>
+                <div id="inventory"></div>
+            </div>
+            
+            <h3>Game Room</h3>
+            <div id="roomInfo">
+                <div>Room Code: <span id="currentRoom">DEFAULT</span></div>
+                <div>Level: <span id="currentLevel">1</span></div>
+                <div>Players: <span id="playerCount">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-content">
+            <span class="help-close" onclick="closeHelp()">&times;</span>
+            <h2>🎮 RuleRogue - Controls & Guide</h2>
+            
+            <h3>🎯 Movement & Basic Controls</h3>
+            <ul>
+                <li><strong>WASD</strong> or <strong>Arrow Keys</strong> - Move your character</li>
+                <li><strong>Hold keys</strong> - Smooth continuous movement</li>
+                <li><strong>I</strong> - Show inventory</li>
+                <li><strong>E</strong> - Equipment menu (equip weapons/armor)</li>
+                <li><strong>, (comma)</strong> - Pick up items at your location</li>
+                <li><strong>&gt;</strong> - Go down stairs (when standing on &gt;)</li>
+                <li><strong>&lt;</strong> - Go up stairs (when standing on &lt;)</li>
+                <li><strong>H</strong> - Show this help (you're here!)</li>
+                <li><strong>ESC</strong> - Close help, inventory, or equipment menu</li>
+            </ul>
+            
+            <h3>⚔️ Combat System</h3>
+            <ul>
+                <li><strong>Walk into monsters</strong> to attack them</li>
+                <li><strong>Combat is automatic</strong> - just move into enemies</li>
+                <li><strong>Monsters fight back</strong> - watch your HP!</li>
+                <li><strong>Kill monsters</strong> for experience and loot</li>
+            </ul>
+            
+            <h3>💰 Loot & Items (NetHack Style)</h3>
+            <ul>
+                <li><strong>Stand on items</strong> and press <strong>, (comma)</strong> to pick them up</li>
+                <li><strong>Game shows message</strong> when you step on items</li>
+                <li><strong>Monsters drop loot</strong> when killed (70% chance)</li>
+                <li><strong>Gold drops</strong> from most monsters (80% chance)</li>
+                <li><strong>Equipment types:</strong> Weapons (/), Armor ([), Potions (!), Rings (=)</li>
+                <li><strong>Rarity levels:</strong> Common, Uncommon, Rare</li>
+                <li><strong>Click items in inventory</strong> to equip weapons and armor</li>
+            </ul>
+            
+            <h3>🏰 Dungeon Navigation</h3>
+            <ul>
+                <li><strong>&lt;</strong> - Upstairs (go to previous level)</li>
+                <li><strong>&gt;</strong> - Downstairs (go to next level)</li>
+                <li><strong>Two ways to use stairs:</strong></li>
+                <li>&nbsp;&nbsp;• <strong>Walk onto stairs</strong> to automatically use them</li>
+                <li>&nbsp;&nbsp;• <strong>Stand on stairs and press &gt; or &lt;</strong> (traditional roguelike)</li>
+                <li><strong>Each level</strong> has different monsters and loot</li>
+                <li><strong>Deeper levels</strong> have stronger monsters and better loot</li>
+                <li><strong>Procedural generation</strong> - each new level is unique</li>
+            </ul>
+            
+            <h3>👥 Multiplayer Features</h3>
+            <ul>
+                <li><strong>Real-time multiplayer</strong> - see other players instantly</li>
+                <li><strong>Share room codes</strong> to play with friends</li>
+                <li><strong>Player identification:</strong> Each player has unique colors and brightness</li>
+                <li><strong>Player tooltips:</strong> Hover over any player to see their name, class, and HP</li>
+                <li><strong>Auto-save preferences:</strong> Your name, class, and room are remembered</li>
+                <li><strong>Player colors:</strong> 
+                    <span class="class-fighter">Fighter (Red)</span>, 
+                    <span class="class-wizard">Wizard (Blue)</span>, 
+                    <span class="class-rogue">Rogue (Green)</span>, 
+                    <span class="class-cleric">Cleric (Yellow)</span>
+                </li>
+                <li><strong>Cooperative gameplay</strong> - work together!</li>
+            </ul>
+            
+            <h3>📊 Character Classes</h3>
+            <ul>
+                <li><strong class="class-fighter">Fighter (@)</strong> - High HP, strong melee combat</li>
+                <li><strong class="class-wizard">Wizard (*)</strong> - Magic abilities, lower HP</li>
+                <li><strong class="class-rogue">Rogue (&)</strong> - Agile and stealthy</li>
+                <li><strong class="class-cleric">Cleric (+)</strong> - Balanced stats, healing</li>
+            </ul>
+            
+            <h3>🎯 Game Symbols</h3>
+            <ul>
+                <li><strong>@ * & +</strong> - Players (you and others)</li>
+                <li><strong>r g o k s z T</strong> - Various monsters</li>
+                <li><strong>/ ) [</strong> - Weapons and armor</li>
+                <li><strong>! ?</strong> - Potions and scrolls</li>
+                <li><strong>= "</strong> - Rings and amulets</li>
+                <li><strong># .</strong> - Walls and floors</li>
+                <li><strong>&lt; &gt;</strong> - Stairs up/down</li>
+            </ul>
+            
+            <p><strong>💡 Pro Tip:</strong> This game uses advanced netcode for instant responsiveness - movement feels immediate even in multiplayer!</p>
+            
+            <button onclick="closeHelp()" style="margin-top: 15px; padding: 10px 20px;">Close Help (ESC)</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

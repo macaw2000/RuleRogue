@@ -1,0 +1,156 @@
+service: rulerogue
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, 'prod'}
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}
+    CONNECTIONS_TABLE: ${self:service}-connections-${self:provider.stage}
+    GAMES_TABLE: ${self:service}-games-${self:provider.stage}
+    PLAYERS_TABLE: ${self:service}-players-${self:provider.stage}
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GAMES_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PLAYERS_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PLAYERS_TABLE}/index/*"
+        - Effect: Allow
+          Action:
+            - execute-api:ManageConnections
+          Resource:
+            - "arn:aws:execute-api:*:*:**/@connections/*"
+
+functions:
+  # WebSocket handlers
+  connect:
+    handler: src/websocket/connect.handler
+    events:
+      - websocket: $connect
+  
+  disconnect:
+    handler: src/websocket/disconnect.handler
+    events:
+      - websocket: $disconnect
+  
+  joinGame:
+    handler: src/websocket/joinGame.handler
+    events:
+      - websocket:
+          route: joinGame
+  
+  playerMove:
+    handler: src/websocket/playerMove.handler
+    events:
+      - websocket:
+          route: playerMove
+  
+  equipItem:
+    handler: src/websocket/equipItem.handler
+    events:
+      - websocket:
+          route: equipItem
+  
+  pickupItem:
+    handler: src/websocket/pickupItem.handler
+    events:
+      - websocket:
+          route: pickupItem
+  
+  # HTTP API for health checks and game info
+  health:
+    handler: src/http/health.handler
+    events:
+      - httpApi:
+          path: /health
+          method: get
+  
+  # Cleanup inactive games (scheduled)
+  cleanup:
+    handler: src/scheduled/cleanup.handler
+    events:
+      - schedule: rate(5 minutes)
+
+resources:
+  Resources:
+    # DynamoDB Tables
+    ConnectionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-connections-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+    
+    GamesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-games-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: gameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: gameId
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+    
+    PlayersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-players-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: playerId
+            AttributeType: S
+          - AttributeName: gameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: playerId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: GameIndex
+            KeySchema:
+              - AttributeName: gameId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+
+  Outputs:
+    WebSocketURL:
+      Description: "WebSocket API URL"
+      Value: !Sub "wss://${WebsocketsApi}.execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}"
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    websocketPort: 3001

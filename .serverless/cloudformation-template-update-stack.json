@@ -1,0 +1,1406 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ConnectLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/rulerogue-prod-connect"
+      }
+    },
+    "DisconnectLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/rulerogue-prod-disconnect"
+      }
+    },
+    "JoinGameLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/rulerogue-prod-joinGame"
+      }
+    },
+    "PlayerMoveLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/rulerogue-prod-playerMove"
+      }
+    },
+    "EquipItemLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/rulerogue-prod-equipItem"
+      }
+    },
+    "PickupItemLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/rulerogue-prod-pickupItem"
+      }
+    },
+    "HealthLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/rulerogue-prod-health"
+      }
+    },
+    "CleanupLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/rulerogue-prod-cleanup"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "rulerogue",
+                  "prod",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup",
+                    "logs:TagResource"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/rulerogue-prod*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/rulerogue-prod*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:us-east-1:*:table/rulerogue-connections-prod",
+                    "arn:aws:dynamodb:us-east-1:*:table/rulerogue-games-prod",
+                    "arn:aws:dynamodb:us-east-1:*:table/rulerogue-players-prod",
+                    "arn:aws:dynamodb:us-east-1:*:table/rulerogue-players-prod/index/*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "execute-api:ManageConnections"
+                  ],
+                  "Resource": "arn:aws:execute-api:*:*:**/@connections/*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "execute-api:ManageConnections"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:execute-api:*:*:*/@connections/*"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "rulerogue",
+              "prod",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "ConnectLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/rulerogue/prod/1756512774497-2025-08-30T00:12:54.497Z/rulerogue.zip"
+        },
+        "Handler": "src/websocket/connect.handler",
+        "Runtime": "nodejs20.x",
+        "FunctionName": "rulerogue-prod-connect",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE": "rulerogue-prod",
+            "CONNECTIONS_TABLE": "rulerogue-connections-prod",
+            "GAMES_TABLE": "rulerogue-games-prod",
+            "PLAYERS_TABLE": "rulerogue-players-prod"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ConnectLogGroup"
+      ]
+    },
+    "DisconnectLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/rulerogue/prod/1756512774497-2025-08-30T00:12:54.497Z/rulerogue.zip"
+        },
+        "Handler": "src/websocket/disconnect.handler",
+        "Runtime": "nodejs20.x",
+        "FunctionName": "rulerogue-prod-disconnect",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE": "rulerogue-prod",
+            "CONNECTIONS_TABLE": "rulerogue-connections-prod",
+            "GAMES_TABLE": "rulerogue-games-prod",
+            "PLAYERS_TABLE": "rulerogue-players-prod"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "DisconnectLogGroup"
+      ]
+    },
+    "JoinGameLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/rulerogue/prod/1756512774497-2025-08-30T00:12:54.497Z/rulerogue.zip"
+        },
+        "Handler": "src/websocket/joinGame.handler",
+        "Runtime": "nodejs20.x",
+        "FunctionName": "rulerogue-prod-joinGame",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE": "rulerogue-prod",
+            "CONNECTIONS_TABLE": "rulerogue-connections-prod",
+            "GAMES_TABLE": "rulerogue-games-prod",
+            "PLAYERS_TABLE": "rulerogue-players-prod"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "JoinGameLogGroup"
+      ]
+    },
+    "PlayerMoveLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/rulerogue/prod/1756512774497-2025-08-30T00:12:54.497Z/rulerogue.zip"
+        },
+        "Handler": "src/websocket/playerMove.handler",
+        "Runtime": "nodejs20.x",
+        "FunctionName": "rulerogue-prod-playerMove",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE": "rulerogue-prod",
+            "CONNECTIONS_TABLE": "rulerogue-connections-prod",
+            "GAMES_TABLE": "rulerogue-games-prod",
+            "PLAYERS_TABLE": "rulerogue-players-prod"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "PlayerMoveLogGroup"
+      ]
+    },
+    "EquipItemLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/rulerogue/prod/1756512774497-2025-08-30T00:12:54.497Z/rulerogue.zip"
+        },
+        "Handler": "src/websocket/equipItem.handler",
+        "Runtime": "nodejs20.x",
+        "FunctionName": "rulerogue-prod-equipItem",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE": "rulerogue-prod",
+            "CONNECTIONS_TABLE": "rulerogue-connections-prod",
+            "GAMES_TABLE": "rulerogue-games-prod",
+            "PLAYERS_TABLE": "rulerogue-players-prod"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "EquipItemLogGroup"
+      ]
+    },
+    "PickupItemLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/rulerogue/prod/1756512774497-2025-08-30T00:12:54.497Z/rulerogue.zip"
+        },
+        "Handler": "src/websocket/pickupItem.handler",
+        "Runtime": "nodejs20.x",
+        "FunctionName": "rulerogue-prod-pickupItem",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE": "rulerogue-prod",
+            "CONNECTIONS_TABLE": "rulerogue-connections-prod",
+            "GAMES_TABLE": "rulerogue-games-prod",
+            "PLAYERS_TABLE": "rulerogue-players-prod"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "PickupItemLogGroup"
+      ]
+    },
+    "HealthLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/rulerogue/prod/1756512774497-2025-08-30T00:12:54.497Z/rulerogue.zip"
+        },
+        "Handler": "src/http/health.handler",
+        "Runtime": "nodejs20.x",
+        "FunctionName": "rulerogue-prod-health",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE": "rulerogue-prod",
+            "CONNECTIONS_TABLE": "rulerogue-connections-prod",
+            "GAMES_TABLE": "rulerogue-games-prod",
+            "PLAYERS_TABLE": "rulerogue-players-prod"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "HealthLogGroup"
+      ]
+    },
+    "CleanupLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/rulerogue/prod/1756512774497-2025-08-30T00:12:54.497Z/rulerogue.zip"
+        },
+        "Handler": "src/scheduled/cleanup.handler",
+        "Runtime": "nodejs20.x",
+        "FunctionName": "rulerogue-prod-cleanup",
+        "MemorySize": 1024,
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE": "rulerogue-prod",
+            "CONNECTIONS_TABLE": "rulerogue-connections-prod",
+            "GAMES_TABLE": "rulerogue-games-prod",
+            "PLAYERS_TABLE": "rulerogue-players-prod"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "CleanupLogGroup"
+      ]
+    },
+    "ConnectLambdaVersionc6rkkgEugK6vruyB6IeogHbGbC9l3OQbTwO78K0n7E": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ConnectLambdaFunction"
+        },
+        "CodeSha256": "Kz+177l9mNY/pyW2WYsNMLFlf2eXralJWeYCiQpbx5c="
+      }
+    },
+    "DisconnectLambdaVersion1yAVnj0o8UN4Wwn6IlDG3oSYTQBBRjjCPBmsg2xmUU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "DisconnectLambdaFunction"
+        },
+        "CodeSha256": "Kz+177l9mNY/pyW2WYsNMLFlf2eXralJWeYCiQpbx5c="
+      }
+    },
+    "JoinGameLambdaVersionJbCBAQeDqIUREUzspXE0awIJy2auOyrBvxDFmX0RvkA": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "JoinGameLambdaFunction"
+        },
+        "CodeSha256": "Kz+177l9mNY/pyW2WYsNMLFlf2eXralJWeYCiQpbx5c="
+      }
+    },
+    "PlayerMoveLambdaVersionVJGeCLRejVMDEPIkeBd3Bz9zasrDhsGmwTSKKWY8": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "PlayerMoveLambdaFunction"
+        },
+        "CodeSha256": "Kz+177l9mNY/pyW2WYsNMLFlf2eXralJWeYCiQpbx5c="
+      }
+    },
+    "EquipItemLambdaVersionG4Hn60J4eS4gqUAMsFL0jiRqV53AHBmZ9H0nkCzhU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "EquipItemLambdaFunction"
+        },
+        "CodeSha256": "Kz+177l9mNY/pyW2WYsNMLFlf2eXralJWeYCiQpbx5c="
+      }
+    },
+    "PickupItemLambdaVersion1tvMq70NyA6vl6I7n9QBUC8zuHc7Gko7d9TkbSzRR0s": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "PickupItemLambdaFunction"
+        },
+        "CodeSha256": "Kz+177l9mNY/pyW2WYsNMLFlf2eXralJWeYCiQpbx5c="
+      }
+    },
+    "HealthLambdaVersionGa90A3nU1vRCf8JG789jFczPHBSJXJaKpb3v0G71MA": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "HealthLambdaFunction"
+        },
+        "CodeSha256": "Kz+177l9mNY/pyW2WYsNMLFlf2eXralJWeYCiQpbx5c="
+      }
+    },
+    "CleanupLambdaVersionyLpoqtCf1kpIfl9r6FqqVqWDgEUtXljWts2LbE": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "CleanupLambdaFunction"
+        },
+        "CodeSha256": "Kz+177l9mNY/pyW2WYsNMLFlf2eXralJWeYCiQpbx5c="
+      }
+    },
+    "CleanupEventsRuleSchedule1": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "rate(5 minutes)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "CleanupLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "cleanupSchedule"
+          }
+        ]
+      }
+    },
+    "CleanupLambdaPermissionEventsRuleSchedule1": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "CleanupLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "CleanupEventsRuleSchedule1",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "WebsocketsApi": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "prod-rulerogue-websockets",
+        "RouteSelectionExpression": "$request.body.action",
+        "Description": "Serverless Websockets",
+        "ProtocolType": "WEBSOCKET"
+      }
+    },
+    "ConnectWebsocketsIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":apigateway:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": [
+                  "ConnectLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "/invocations"
+            ]
+          ]
+        }
+      }
+    },
+    "DisconnectWebsocketsIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":apigateway:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": [
+                  "DisconnectLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "/invocations"
+            ]
+          ]
+        }
+      }
+    },
+    "JoinGameWebsocketsIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":apigateway:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": [
+                  "JoinGameLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "/invocations"
+            ]
+          ]
+        }
+      }
+    },
+    "PlayerMoveWebsocketsIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":apigateway:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": [
+                  "PlayerMoveLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "/invocations"
+            ]
+          ]
+        }
+      }
+    },
+    "EquipItemWebsocketsIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":apigateway:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": [
+                  "EquipItemLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "/invocations"
+            ]
+          ]
+        }
+      }
+    },
+    "PickupItemWebsocketsIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":apigateway:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": [
+                  "PickupItemLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "/invocations"
+            ]
+          ]
+        }
+      }
+    },
+    "ConnectLambdaPermissionWebsockets": {
+      "Type": "AWS::Lambda::Permission",
+      "DependsOn": [
+        "WebsocketsApi",
+        "ConnectLambdaFunction"
+      ],
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ConnectLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com"
+      }
+    },
+    "DisconnectLambdaPermissionWebsockets": {
+      "Type": "AWS::Lambda::Permission",
+      "DependsOn": [
+        "WebsocketsApi",
+        "DisconnectLambdaFunction"
+      ],
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "DisconnectLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com"
+      }
+    },
+    "JoinGameLambdaPermissionWebsockets": {
+      "Type": "AWS::Lambda::Permission",
+      "DependsOn": [
+        "WebsocketsApi",
+        "JoinGameLambdaFunction"
+      ],
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "JoinGameLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com"
+      }
+    },
+    "PlayerMoveLambdaPermissionWebsockets": {
+      "Type": "AWS::Lambda::Permission",
+      "DependsOn": [
+        "WebsocketsApi",
+        "PlayerMoveLambdaFunction"
+      ],
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PlayerMoveLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com"
+      }
+    },
+    "EquipItemLambdaPermissionWebsockets": {
+      "Type": "AWS::Lambda::Permission",
+      "DependsOn": [
+        "WebsocketsApi",
+        "EquipItemLambdaFunction"
+      ],
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EquipItemLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com"
+      }
+    },
+    "PickupItemLambdaPermissionWebsockets": {
+      "Type": "AWS::Lambda::Permission",
+      "DependsOn": [
+        "WebsocketsApi",
+        "PickupItemLambdaFunction"
+      ],
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PickupItemLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com"
+      }
+    },
+    "SconnectWebsocketsRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "RouteKey": "$connect",
+        "AuthorizationType": "NONE",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "ConnectWebsocketsIntegration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SdisconnectWebsocketsRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "RouteKey": "$disconnect",
+        "AuthorizationType": "NONE",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "DisconnectWebsocketsIntegration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "joinGameWebsocketsRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "RouteKey": "joinGame",
+        "AuthorizationType": "NONE",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "JoinGameWebsocketsIntegration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "playerMoveWebsocketsRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "RouteKey": "playerMove",
+        "AuthorizationType": "NONE",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "PlayerMoveWebsocketsIntegration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "equipItemWebsocketsRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "RouteKey": "equipItem",
+        "AuthorizationType": "NONE",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "EquipItemWebsocketsIntegration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "pickupItemWebsocketsRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "RouteKey": "pickupItem",
+        "AuthorizationType": "NONE",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "PickupItemWebsocketsIntegration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "WebsocketsDeploymentStage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "StageName": "prod",
+        "Description": "Serverless Websockets",
+        "DeploymentId": {
+          "Ref": "WebsocketsDeploymentWeVE4G7ZpSzSUOB3Hj0qDwk77l3pAeeVlz5cmdkIJ8"
+        }
+      }
+    },
+    "WebsocketsDeploymentWeVE4G7ZpSzSUOB3Hj0qDwk77l3pAeeVlz5cmdkIJ8": {
+      "Type": "AWS::ApiGatewayV2::Deployment",
+      "DependsOn": [
+        "SconnectWebsocketsRoute",
+        "SdisconnectWebsocketsRoute",
+        "joinGameWebsocketsRoute",
+        "playerMoveWebsocketsRoute",
+        "equipItemWebsocketsRoute",
+        "pickupItemWebsocketsRoute"
+      ],
+      "Properties": {
+        "ApiId": {
+          "Ref": "WebsocketsApi"
+        },
+        "Description": "Serverless Websockets"
+      }
+    },
+    "HttpApi": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "prod-rulerogue",
+        "ProtocolType": "HTTP"
+      }
+    },
+    "HttpApiStage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "StageName": "$default",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "DetailedMetricsEnabled": false
+        }
+      }
+    },
+    "HealthLambdaPermissionHttpApi": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "HealthLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "HttpApi"
+              },
+              "/*"
+            ]
+          ]
+        }
+      }
+    },
+    "HttpApiIntegrationHealth": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "HealthLambdaFunction",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "HttpApiRouteGetHealth": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "GET /health",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationHealth"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationHealth"
+    },
+    "ConnectionsTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "rulerogue-connections-prod",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "connectionId",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "connectionId",
+            "KeyType": "HASH"
+          }
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true
+        }
+      }
+    },
+    "GamesTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "rulerogue-games-prod",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "gameId",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "gameId",
+            "KeyType": "HASH"
+          }
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true
+        }
+      }
+    },
+    "PlayersTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "rulerogue-players-prod",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "playerId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "gameId",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "playerId",
+            "KeyType": "HASH"
+          }
+        ],
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "GameIndex",
+            "KeySchema": [
+              {
+                "AttributeName": "gameId",
+                "KeyType": "HASH"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            }
+          }
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-ServerlessDeploymentBucketName"
+      }
+    },
+    "ConnectLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ConnectLambdaVersionc6rkkgEugK6vruyB6IeogHbGbC9l3OQbTwO78K0n7E"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-ConnectLambdaFunctionQualifiedArn"
+      }
+    },
+    "DisconnectLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "DisconnectLambdaVersion1yAVnj0o8UN4Wwn6IlDG3oSYTQBBRjjCPBmsg2xmUU"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-DisconnectLambdaFunctionQualifiedArn"
+      }
+    },
+    "JoinGameLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "JoinGameLambdaVersionJbCBAQeDqIUREUzspXE0awIJy2auOyrBvxDFmX0RvkA"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-JoinGameLambdaFunctionQualifiedArn"
+      }
+    },
+    "PlayerMoveLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "PlayerMoveLambdaVersionVJGeCLRejVMDEPIkeBd3Bz9zasrDhsGmwTSKKWY8"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-PlayerMoveLambdaFunctionQualifiedArn"
+      }
+    },
+    "EquipItemLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "EquipItemLambdaVersionG4Hn60J4eS4gqUAMsFL0jiRqV53AHBmZ9H0nkCzhU"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-EquipItemLambdaFunctionQualifiedArn"
+      }
+    },
+    "PickupItemLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "PickupItemLambdaVersion1tvMq70NyA6vl6I7n9QBUC8zuHc7Gko7d9TkbSzRR0s"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-PickupItemLambdaFunctionQualifiedArn"
+      }
+    },
+    "HealthLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "HealthLambdaVersionGa90A3nU1vRCf8JG789jFczPHBSJXJaKpb3v0G71MA"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-HealthLambdaFunctionQualifiedArn"
+      }
+    },
+    "CleanupLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "CleanupLambdaVersionyLpoqtCf1kpIfl9r6FqqVqWDgEUtXljWts2LbE"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-CleanupLambdaFunctionQualifiedArn"
+      }
+    },
+    "ServiceEndpointWebsocket": {
+      "Description": "URL of the service endpoint",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "wss://",
+            {
+              "Ref": "WebsocketsApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            },
+            "/prod"
+          ]
+        ]
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-ServiceEndpointWebsocket"
+      }
+    },
+    "HttpApiId": {
+      "Description": "Id of the HTTP API",
+      "Value": {
+        "Ref": "HttpApi"
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-HttpApiId"
+      }
+    },
+    "HttpApiUrl": {
+      "Description": "URL of the HTTP API",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "HttpApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            }
+          ]
+        ]
+      },
+      "Export": {
+        "Name": "sls-rulerogue-prod-HttpApiUrl"
+      }
+    },
+    "WebSocketURL": {
+      "Description": "WebSocket API URL",
+      "Value": {
+        "Fn::Sub": "wss://${WebsocketsApi}.execute-api.us-east-1.amazonaws.com/prod"
+      }
+    }
+  }
+}

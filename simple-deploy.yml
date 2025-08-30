@@ -1,0 +1,98 @@
+service: roguelike-simple
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: prod
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:*
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - execute-api:ManageConnections
+          Resource: "*"
+
+functions:
+  connect:
+    handler: src/websocket/connect.handler
+    events:
+      - websocket: $connect
+  
+  disconnect:
+    handler: src/websocket/disconnect.handler
+    events:
+      - websocket: $disconnect
+  
+  joinGame:
+    handler: src/websocket/joinGame.handler
+    events:
+      - websocket:
+          route: joinGame
+  
+  playerMove:
+    handler: src/websocket/playerMove.handler
+    events:
+      - websocket:
+          route: playerMove
+  
+  health:
+    handler: src/http/health.handler
+    events:
+      - httpApi:
+          path: /health
+          method: get
+
+resources:
+  Resources:
+    ConnectionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: roguelike-simple-connections-prod
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+    
+    GamesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: roguelike-simple-games-prod
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: gameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: gameId
+            KeyType: HASH
+    
+    PlayersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: roguelike-simple-players-prod
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: playerId
+            AttributeType: S
+          - AttributeName: gameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: playerId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: GameIndex
+            KeySchema:
+              - AttributeName: gameId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
