@@ -31,7 +31,7 @@ function deleteCookie(name) {
 
 // Movement optimization - ultra responsive with prediction
 let lastMoveTime = 0;
-const moveDelay = 25; // 25ms between moves for maximum responsiveness
+const moveDelay = 100; // 100ms between moves for responsive movement
 let pendingMoves = []; // Queue of moves sent to server but not yet confirmed
 let moveSequence = 0; // Sequence number for moves to handle out-of-order responses
 let serverPosition = { x: 0, y: 0 }; // Last confirmed server position
@@ -587,11 +587,8 @@ function updatePlayerStats() {
 document.addEventListener('keydown', (event) => {
     if (loginScreen && loginScreen.style.display !== 'none') return;
     
-    // Prevent key repeat events
-    if (event.repeat) {
-        event.preventDefault();
-        return;
-    }
+    // Allow key repeat for smooth movement
+    // Removed repeat prevention for better responsiveness
     
     let direction = null;
     const key = event.key.toLowerCase();
